@@ -1,2 +1,2 @@
 # dang-thats-delicious
-ReactJS app for a seafood ordering system 
+ReactJS app project for a seafood ordering system.

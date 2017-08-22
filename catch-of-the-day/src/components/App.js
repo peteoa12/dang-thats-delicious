@@ -1,59 +1,109 @@
-import React, {Component} from 'react';
-
+import React from 'react';
 import Header from './Header';
 import Order from './Order';
 import Inventory from './Inventory';
-import Fish from './Fish'
-
+import Fish from './Fish';
 import sampleFishes from '../sample-fishes';
+import base from '../base';
 
-class App extends Component {
-	constructor() {
-		super(); //this pretty much has to happen so that React.Component is called before the component.
-		this.addFish = this.addFish.bind(this); //this binds the addFish() method to the component. 
-		this.loadSamples = this.loadSamples.bind(this); //this binds the loadSamples() method to the component. 
-		//getInitialState
-		this.state = {
-			fishes: {}, //set the initial item state to an empty object.
-			order: {}  //set the item order state to an empty object.
-		};
-	}
+class App extends React.Component {
+  constructor() {
+    super();
 
-	addFish(fish) {
-		// update our state or make a copy of the existing state
-		const fishes = {...this.state.fishes}; //it takes each item in the fish object and spreads them into a new object.
-		//add in our new item
-		const timeStamp = Date.now(); //create unique timeStamp for that item
-		fishes[`fish-${timeStamp}`] = fish; //add the timestamp to the item to create a unique item ID.
-		//set state
-		this.setState({ fishes }) //set the new state of the item by passing the item to this.setState() method
-	} //Now we will pass this method to the child component <Inventory/>. See line 35. 
-	  //This will make the addFish method available in Inventory.js (see line 10 in Inventory.js) so we can pass it to the <AddFishForm/> component thus trickling data downstream.
+    this.addFish = this.addFish.bind(this);
+    this.updateFish = this.updateFish.bind(this);
+    this.loadSamples = this.loadSamples.bind(this);
+    this.addToOrder = this.addToOrder.bind(this);
 
-	loadSamples() {
-		this.setState({
-			fishes: sampleFishes
-		})
-	}
+    // getinitialState
+    this.state = {
+      fishes: {},
+      order: {}
+    };
+  }
 
-	render() {
-		return (
-		 <div className="catch-of-the-day">
-		 	<div className="menu">
-		 		<Header tagline="Fresh Seafood Market"/>
-				<ul className="list-of-fishes">
-		 			{
-		 				Object
-		 					.keys(this.state.fishes)
-		 					.map(key => <Fish key={key} details={this.state.fishes[key]} />)
-		 			}
-		 		</ul>
-		 	</div>
-		 	<Order/>
-		 	<Inventory addFish={this.addFish} loadSamples={this.loadSamples}/>
-		 </div>
-		)
-	}
+  componentWillMount() {
+  	//this runs right before the app is rendered
+  	this.ref = base.syncState(`${this.props.params.storeId}/fishes`
+  		, {
+  			context: this,
+  			state: 'fishes'
+  	});
+
+  	//check if there is any order in local storage
+  	const localStorageRef = localStorage.getItem(`order-${this.props.params.storeId}`);
+
+  	if(localStorageRef) {
+  		//update our app component's order state
+  		this.setState({
+  			order: JSON.parse(localStorageRef)
+  		});
+  	}
+  }
+
+  componentWillUnmount() {
+  	base.removeBinding(this.ref);
+  }
+
+  componentWillUpdate(nextProps, nextState) {
+  	localStorage.setItem(`order-${this.props.params.storeId}`, JSON.stringify(nextState.order));
+  }
+
+  addFish(fish) {
+    // update our state
+    const fishes = {...this.state.fishes};
+    // add in our new fish
+    const timestamp = Date.now();
+    fishes[`fish-${timestamp}`] = fish;
+    // set state
+    this.setState({ fishes });
+  }
+
+  updateFish(key, updatedFish) {
+    const fishes = {...this.state.fishes};
+    fishes[key] = updatedFish;
+    this.setState({ fishes });
+  }
+
+  loadSamples() {
+    this.setState({
+      fishes: sampleFishes
+    });
+  }
+
+  addToOrder(key) {
+    // take a copy of our state
+    const order = {...this.state.order};
+    // update or add the new number of fish ordered
+    order[key] = order[key] + 1 || 1;
+    // update our state
+    this.setState({ order });
+  }
+
+  render() {
+    return (
+      <div className="catch-of-the-day">
+        <div className="menu">
+          <Header tagline="Fresh Seafood Market" />
+          <ul className="list-of-fishes">
+            {
+              Object
+                .keys(this.state.fishes)
+                .map(key => <Fish key={key} index={key} details={this.state.fishes[key]} addToOrder={this.addToOrder}/>)
+            }
+          </ul>
+        </div>
+        <Order fishes={this.state.fishes} 
+        	   order={this.state.order}
+        	   params={this.state.params}
+       	/>
+        <Inventory addFish={this.addFish} 
+                   loadSamples={this.loadSamples} 
+                   fishes={this.state.fishes}
+                   updateFish={this.updateFish}/>
+      </div>
+    )
+  }
 }
 
 export default App;

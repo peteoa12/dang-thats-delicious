@@ -24,6 +24,14 @@ class App extends React.Component {
     };
   }
 
+  componentDidMount() {
+    base.onAuth((user) => {
+      if(user) {
+        this.authHandler(null, { user });
+      }
+    })
+  }
+
   componentWillMount() {
   	//this runs right before the app is rendered
   	this.ref = base.syncState(`${this.props.params.storeId}/fishes`
@@ -117,7 +125,9 @@ class App extends React.Component {
                    loadSamples={this.loadSamples} 
                    fishes={this.state.fishes}
                    updateFish={this.updateFish}
-                   removeFish={this.removeFish}/>
+                   removeFish={this.removeFish}
+                   storeId={this.props.params.storeId}
+        />
       </div>
     )
   }
